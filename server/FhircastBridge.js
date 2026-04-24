@@ -39,7 +39,9 @@ function buildFhircastEvent(payload, fhircastAction) {
     timestamp: payload.timestamp,
     id: payload.id,
     event: {
-      'hub.topic': payload.patientId || 'unknown',
+      'hub.topic': (get(Meteor, 'settings.public.fhircast.topicMode', 'custom') === 'patientId' && payload.patientId)
+        ? payload.patientId
+        : get(Meteor, 'settings.public.fhircast.topic', 'DrXRay'),
       'hub.event': eventName,
       context: [
         {
@@ -48,8 +50,15 @@ function buildFhircastEvent(payload, fhircastAction) {
             resourceType: payload.resourceType,
             id: payload.resourceId
           }
-        }
-      ]
+        },
+        payload.patientId ? {
+          key: 'patient',
+          resource: {
+            resourceType: 'Patient',
+            id: payload.patientId
+          }
+        } : null
+      ].filter(Boolean)
     },
     _meta: {
       lifecycleEvent: payload.lifecycleEvent,
